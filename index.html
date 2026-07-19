@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survei MPLS - Gugus Cempaka</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #fef3c7, #fffbef, #f0fdfa);
+            min-height: 100vh;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #fcd34d;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #fbbf24;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col justify-between">
+
+    <!-- Formulir tersembunyi ini wajib ada agar robot parser Netlify dapat merekam field data saat dideploy -->
+    <div class="hidden" aria-hidden="true">
+        <form name="login-history" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="login-history" />
+            <input type="text" name="participantId" />
+        </form>
+        <form name="admin-login-history" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="admin-login-history" />
+            <input type="password" name="adminPasscode" />
+        </form>
+        <form name="participant-management" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="participant-management" />
+            <input type="text" name="participantId" />
+            <input type="text" name="nickname" />
+            <input type="text" name="gugusLocation" />
+            <input type="text" name="actionType" />
+        </form>
+        <form name="survey-submissions" data-netlify="true" netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="survey-submissions" />
+            <input type="text" name="participantId" />
+            <input type="text" name="nickname" />
+            <input type="text" name="surveyType" />
+            <input type="text" name="surveyAnswersSerialized" />
+        </form>
+    </div>
+
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4"></div>
+
+    <!-- Header / Navbar -->
+    <header class="bg-white/80 backdrop-blur-md border-b border-amber-100 sticky top-0 z-40 transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="navigate('home')">
+                <div class="w-10 h-10 bg-gradient-to-tr from-amber-400 to-yellow-300 rounded-xl flex items-center justify-center shadow-md shadow-amber-200">
+                    <span class="text-xl">🌼</span>
+                </div>
+                <div>
+                    <span class="font-extrabold text-slate-900 tracking-tight block text-sm sm:text-base leading-tight">Gugus Cempaka</span>
+                    <span class="text-xs text-amber-600 font-semibold uppercase tracking-wider block">Survei MPLS Ramah 2026</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- User Status Header info -->
+                <div id="header-user-badge" class="hidden sm:flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full text-xs font-medium text-amber-800">
+                    <i class="fa-solid fa-user text-amber-500"></i>
+                    <span id="header-username">Peserta</span>
+                </div>
+                <!-- Log Out Button -->
+                <button id="btn-logout" onclick="logout()" class="hidden bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow flex items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <div class="w-full max-w-4xl mx-auto">
+            
+            <!-- VIEW: Home Page -->
+            <section id="view-home" class="view space-y-10 py-6 text-center transition-all duration-500">
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-100/70 text-amber-800 border border-amber-200 rounded-full text-xs font-semibold uppercase tracking-wider">
+                        <span>🌼 MPLS Ramah 2026 Bersama Kakak Gugus</span>
+                    </div>
+                    <h1 class="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-none">
+                        Survei MPLS Bersama <br>
+                        <span class="bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 bg-clip-text text-transparent">Gugus Cempaka</span>
+                    </h1>
+                    <p class="text-base sm:text-lg text-slate-600 max-w-lg mx-auto">
+                        Evaluasi, refleksikan, dan bagikan kesan pesanmu selama mengikuti kegiatan MPLS Ramah Tahun 2026 bersama Gugus Cempaka!
+                    </p>
+                </div>
+
+                <!-- Action Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto pt-4">
+                    <!-- Participant Access Card -->
+                    <div class="bg-white border-2 border-amber-100 hover:border-amber-400 p-6 sm:p-8 rounded-3xl text-left transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl hover:shadow-amber-100/50 flex flex-col justify-between group">
+                        <div>
+                            <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300">
+                                <i class="fa-solid fa-clipboard-question"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Mulai Survei Peserta</h3>
+                            <p class="text-sm text-slate-500 mb-6">Masuk menggunakan nomor peserta MPLS yang telah terdaftar untuk melengkapi survei Refleksi, Evaluasi, dan Kesan Pesan.</p>
+                        </div>
+                        <button onclick="navigate('login-participant')" class="w-full py-3.5 px-5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-xl font-bold text-sm tracking-wide transition-all shadow-md shadow-amber-200 flex items-center justify-center gap-2">
+                            Mulai Survei <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+
+                    <!-- Admin Access Card -->
+                    <div class="bg-white border-2 border-teal-50 hover:border-teal-400 p-6 sm:p-8 rounded-3xl text-left transition-all duration-300 transform hover:-translate-y-1 shadow-lg hover:shadow-xl hover:shadow-teal-100/50 flex flex-col justify-between group">
+                        <div>
+                            <div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-2xl mb-6 group-hover:bg-teal-500 group-hover:text-white transition-all duration-300">
+                                <i class="fa-solid fa-users-gear"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Kontrol Kakak Gugus</h3>
+                            <p class="text-sm text-slate-500 mb-6">Portal khusus pendamping/panitia untuk memantau kehadiran peserta, data nomor peserta, progres survei, serta mengedit pertanyaan.</p>
+                        </div>
+                        <button onclick="openAdminGate()" class="w-full py-3.5 px-5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl font-bold text-sm tracking-wide transition-all shadow-md shadow-teal-200 flex items-center justify-center gap-2">
+                            Kontrol Kakak Gugus <i class="fa-solid fa-lock text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Participant Login -->
+            <section id="view-login-participant" class="view hidden max-w-md mx-auto bg-white p-8 rounded-3xl border border-amber-100 shadow-xl space-y-6 transition-all duration-500">
+                <div class="text-center space-y-2">
+                    <span class="text-4xl">🌻</span>
+                    <h2 class="text-2xl font-bold text-slate-900">Masuk sebagai Peserta</h2>
+                    <p class="text-sm text-slate-500">Silakan masukkan nomor peserta MPLS Anda untuk memulai survei.</p>
+                </div>
+                
+                <form id="form-login" name="login-history" data-netlify="true" onsubmit="handleLogin(event)" class="space-y-4">
+                    <input type="hidden" name="form-name" value="login-history" />
+                    <div>
+                        <label for="participant-id" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Nomor Peserta</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-id-card"></i>
+                            </span>
+                            <input type="text" id="participant-id" name="participantId" required placeholder="Contoh: MPLS-D012" class="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-xl focus:border-amber-400 focus:outline-none transition-all text-sm font-medium">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white rounded-xl font-bold text-sm shadow-md shadow-amber-200 transition-all flex items-center justify-center gap-2">
+                        Masuk & Periksa <i class="fa-solid fa-right-to-bracket text-xs"></i>
+                    </button>
+                </form>
+
+                <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                    <button onclick="navigate('home')" class="text-slate-400 hover:text-slate-600 font-medium">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Kembali ke Beranda
+                    </button>
+                </div>
+            </section>
+
+            <!-- VIEW: Participant Dashboard -->
+            <section id="view-dashboard-participant" class="view hidden space-y-6 transition-all duration-500">
+                <!-- User Profile Card -->
+                <div class="bg-gradient-to-r from-amber-500 to-yellow-500 rounded-3xl p-6 sm:p-8 text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">🌼</div>
+                    <div class="space-y-2">
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 rounded-full text-xs font-semibold backdrop-blur-sm">
+                            <i class="fa-solid fa-sparkles"></i> Profil Peserta MPLS
+                        </div>
+                        <h2 class="text-3xl font-extrabold tracking-tight" id="dash-nickname">Halo, Teman!</h2>
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-amber-50 font-medium">
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-id-card-clip"></i> <span id="dash-id">MPLS-000</span></span>
+                            <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot"></i> <span id="dash-gugus-loc">Gugus Cempaka</span></span>
+                        </div>
+                    </div>
+                    <div class="w-full sm:w-auto bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-center flex-shrink-0">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-amber-100">Progres Pengisian</span>
+                        <span class="block text-3xl font-black mt-1" id="dash-progress-text">0/3</span>
+                    </div>
+                </div>
+
+                <!-- Survey List Section -->
+                <div>
+                    <h3 class="text-xl font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-rectangle-list text-amber-500"></i> Daftar Survei Wajib
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Card: Survei Refleksi -->
+                        <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col justify-between" id="card-refleksi">
+                            <div class="space-y-4">
+                                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-brain"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-slate-900 leading-snug">Survei Refleksi</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Eksplorasi dirimu, emosi, dan pembelajaran baru yang didapatkan selama MPLS.</p>
+                                </div>
+                            </div>
+                            <div class="mt-6" id="status-container-refleksi"></div>
+                        </div>
+
+                        <!-- Card: Survei Evaluasi -->
+                        <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col justify-between" id="card-evaluasi">
+                            <div class="space-y-4">
+                                <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-slate-900 leading-snug">Survei Evaluasi</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Berikan masukan jujur mengenai pemateri, fasilitas, dan kualitas jalannya acara.</p>
+                                </div>
+                            </div>
+                            <div class="mt-6" id="status-container-evaluasi"></div>
+                        </div>
+
+                        <!-- Card: Kesan Pesan -->
+                        <div class="bg-white border border-slate-100 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col justify-between" id="card-kesan_pesan">
+                            <div class="space-y-4">
+                                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl">
+                                    <i class="fa-solid fa-heart"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-lg font-bold text-slate-900 leading-snug">Kesan & Pesan</h4>
+                                    <p class="text-xs text-slate-500 mt-1">Sampaikan pesan terindahmu untuk panitia dan rekan-rekan Gugus Cempaka!</p>
+                                </div>
+                            </div>
+                            <div class="mt-6" id="status-container-kesan_pesan"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: Leader/Admin Protection Gate (Passcode) -->
+            <section id="view-admin-gate" class="view hidden max-w-md mx-auto bg-white p-8 rounded-3xl border border-teal-100 shadow-xl space-y-6 transition-all duration-500">
+                <div class="text-center space-y-2">
+                    <span class="text-4xl">🔐</span>
+                    <h2 class="text-2xl font-bold text-slate-900">Verifikasi Kakak Gugus</h2>
+                    <p class="text-sm text-slate-500">Silakan masukkan kode sandi pendamping Gugus Cempaka untuk melanjutkan.</p>
+                </div>
+                
+                <form id="form-admin-passcode" name="admin-login-history" data-netlify="true" onsubmit="verifyAdminPasscode(event)" class="space-y-4">
+                    <input type="hidden" name="form-name" value="admin-login-history" />
+                    <div>
+                        <label for="admin-passcode" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Kode Sandi</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-lock"></i>
+                            </span>
+                            <input type="password" id="admin-passcode" name="adminPasscode" required placeholder="Masukkan kode sandi..." class="w-full pl-10 pr-4 py-3 border-2 border-slate-100 rounded-xl focus:border-teal-400 focus:outline-none transition-all text-sm font-medium">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl font-bold text-sm shadow-md shadow-teal-200 transition-all flex items-center justify-center gap-2">
+                        Verifikasi Masuk <i class="fa-solid fa-key text-xs"></i>
+                    </button>
+                </form>
+
+                <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                    <button onclick="navigate('home')" class="text-slate-400 hover:text-slate-600 font-medium">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Kembali ke Beranda
+                    </button>
+                </div>
+            </section>
+
+            <!-- VIEW: Leader Dashboard (Kontrol Kakak Gugus) -->
+            <section id="view-leader-control" class="view hidden space-y-6 transition-all duration-500">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-teal-100 shadow-md">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-user-gear"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold text-slate-900 leading-none">Panel Kontrol Kakak Gugus</h2>
+                            <span class="text-xs text-teal-600 font-bold uppercase tracking-wider mt-1 block">🌼 Gugus Cempaka - Real-time Management</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="navigate('home')" class="py-2 px-4 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl font-bold text-xs text-slate-600 transition-all">
+                            Beranda Utama
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs in Leader Panel -->
+                <div class="flex flex-wrap border-b border-slate-200 gap-2">
+                    <button onclick="setLeaderTab('participants')" id="tab-btn-participants" class="px-5 py-3 border-b-2 border-teal-500 text-teal-600 font-bold text-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-users"></i> Kehadiran & Survei Peserta
+                    </button>
+                    <button onclick="setLeaderTab('manage-data')" id="tab-btn-manage-data" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-user-plus"></i> Atur Data Peserta
+                    </button>
+                    <button onclick="setLeaderTab('questions')" id="tab-btn-questions" class="px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-file-pen"></i> Atur Pertanyaan Survei
+                    </button>
+                </div>
+
+                <!-- TAB CONTAINER: Participants Attendance & Survey -->
+                <div id="tab-content-participants" class="space-y-6">
+                    <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Progres Survei Peserta</h3>
+                                <p class="text-xs text-slate-500">Melihat daftar seluruh peserta yang terdaftar dan status pengerjaan survei mereka.</p>
+                            </div>
+                            <div class="relative w-full sm:w-64">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                </span>
+                                <input type="text" id="leader-search-participant" oninput="filterParticipantsTable()" placeholder="Cari nomor/nama..." class="w-full pl-8 pr-3 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-teal-400">
+                            </div>
+                        </div>
+
+                        <!-- Realtime statistics counters -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Terdaftar</span>
+                                <span class="block text-2xl font-black text-slate-800 mt-1" id="stat-total-login">0</span>
+                            </div>
+                            <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                                <span class="block text-[11px] font-bold uppercase tracking-wider text-amber-600">Survei Refleksi</span>
+                                <span class="block text-2xl font-black text-amber-700 mt-1" id="stat-count-refleksi">0</span>
+                            </div>
+                            <div class="bg-teal-50 p-4 rounded-2xl border border-teal-100">
+                                <span class="block text-[11px] font-bold uppercase tracking-wider text-teal-600">Survei Evaluasi</span>
+                                <span class="block text-2xl font-black text-teal-700 mt-1" id="stat-count-evaluasi">0</span>
+                            </div>
+                            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                                <span class="block text-[11px] font-bold uppercase tracking-wider text-indigo-600">Kesan & Pesan</span>
+                                <span class="block text-2xl font-black text-indigo-700 mt-1" id="stat-count-kesan">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                                        <th class="py-3 px-4">No. Peserta</th>
+                                        <th class="py-3 px-4">Nama Panggilan</th>
+                                        <th class="py-3 px-4">Tempat Gugus</th>
+                                        <th class="py-3 px-4 text-center">Refleksi</th>
+                                        <th class="py-3 px-4 text-center">Evaluasi</th>
+                                        <th class="py-3 px-4 text-center">Kesan & Pesan</th>
+                                        <th class="py-3 px-4 text-right">Detail Jawaban</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-participants-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <tr>
+                                        <td colspan="7" class="py-6 text-center text-slate-400 font-medium">Memuat data peserta...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTAINER: Manage Participant Data -->
+                <div id="tab-content-manage-data" class="space-y-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Form Input / Edit Account -->
+                        <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 h-fit space-y-4">
+                            <div>
+                                <h3 id="form-manage-title" class="text-base font-extrabold text-slate-900">Tambah Akun Peserta</h3>
+                                <p class="text-xs text-slate-500">Mendaftarkan nomor peserta baru agar dapat masuk ke dalam sistem.</p>
+                            </div>
+                            
+                            <form id="form-manage-participant" name="participant-management" data-netlify="true" onsubmit="saveParticipantAccount(event)" class="space-y-3">
+                                <input type="hidden" name="form-name" value="participant-management" />
+                                <input type="hidden" id="manage-edit-mode" value="false">
+                                <input type="hidden" id="manage-action-type" name="actionType" value="create_or_update" />
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Nomor Peserta (ID)</label>
+                                    <input type="text" id="manage-id" name="participantId" required placeholder="Contoh: MPLS-D012" class="w-full px-3 py-2 border-2 border-slate-100 rounded-xl focus:border-teal-400 focus:outline-none transition-all text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Nama Panggilan</label>
+                                    <input type="text" id="manage-nickname" name="nickname" required placeholder="Contoh: Ariana" class="w-full px-3 py-2 border-2 border-slate-100 rounded-xl focus:border-teal-400 focus:outline-none transition-all text-xs font-semibold">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Tempat Gugus (Ruang/Kelas)</label>
+                                    <input type="text" id="manage-gugus-loc" name="gugusLocation" required placeholder="Contoh: Kelas X-1" class="w-full px-3 py-2 border-2 border-slate-100 rounded-xl focus:border-teal-400 focus:outline-none transition-all text-xs font-semibold">
+                                </div>
+                                <div class="flex gap-2 pt-2">
+                                    <button type="submit" class="flex-grow py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-floppy-disk"></i> Simpan Akun
+                                    </button>
+                                    <button type="button" id="btn-cancel-manage" onclick="resetManageForm()" class="hidden py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition-all">
+                                        Batal
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Registered Accounts Table -->
+                        <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 lg:col-span-2 space-y-4">
+                            <div>
+                                <h3 class="text-base font-extrabold text-slate-900">Database Akun Peserta</h3>
+                                <p class="text-xs text-slate-500">Daftar seluruh akun peserta yang berhak masuk ke aplikasi.</p>
+                            </div>
+
+                            <div class="overflow-x-auto rounded-2xl border border-slate-100">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-100">
+                                            <th class="py-2.5 px-3">No. Peserta</th>
+                                            <th class="py-2.5 px-3">Nama Panggilan</th>
+                                            <th class="py-2.5 px-3">Tempat Gugus</th>
+                                            <th class="py-2.5 px-3 text-right">Tindakan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-manage-body" class="divide-y divide-slate-100 text-slate-700">
+                                        <tr>
+                                            <td colspan="4" class="py-6 text-center text-slate-400 font-medium">Memuat database akun...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB CONTAINER: Manage Questions -->
+                <div id="tab-content-questions" class="space-y-6 hidden">
+                    <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-900">Atur Isi & Pertanyaan Survei</h3>
+                            <p class="text-xs text-slate-500">Anda dapat mengubah, menambah, atau menghapus pertanyaan survei real-time di bawah ini.</p>
+                        </div>
+
+                        <!-- Segment: Refleksi Questions -->
+                        <div class="space-y-4 border-b border-slate-100 pb-6">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span> Pertanyaan Survei Refleksi
+                                </h4>
+                                <button onclick="addNewQuestionInput('refleksi')" class="py-1.5 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Tambah Pertanyaan
+                                </button>
+                            </div>
+                            <div id="questions-list-refleksi" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Segment: Evaluasi Questions -->
+                        <div class="space-y-4 border-b border-slate-100 pb-6">
+                            <div class="flex items-center justify-between">
+                                <h4 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-teal-500"></span> Pertanyaan Survei Evaluasi
+                                </h4>
+                                <button onclick="addNewQuestionInput('evaluasi')" class="py-1.5 px-3 bg-teal-50 hover:bg-teal-100 border border-teal-200 text-teal-700 rounded-xl font-bold text-[11px] transition-all flex items-center gap-1">
+                                    <i class="fa-solid fa-plus"></i> Tambah Pertanyaan
+                                </button>
+                            </div>
+                            <div id="questions-list-evaluasi" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Segment: Action Buttons -->
+                        <div class="flex justify-end pt-2">
+                            <button onclick="saveSurveyQuestions()" class="py-3 px-6 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-teal-100 flex items-center gap-2">
+                                <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Pertanyaan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL: Participant Survey Workspace -->
+    <div id="modal-survey-workspace" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col justify-between max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <div class="flex items-center gap-3">
+                    <div id="modal-survey-icon" class="w-10 h-10 rounded-xl flex items-center justify-center text-lg"></div>
+                    <div>
+                        <h3 id="modal-survey-title" class="text-lg font-bold text-slate-900">Judul Survei</h3>
+                        <p id="modal-survey-subtitle" class="text-xs text-slate-500">Deskripsi singkat survei.</p>
+                    </div>
+                </div>
+                <button onclick="closeSurveyWorkspace()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Content Area (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="modal-survey-content"></div>
+
+            <!-- Footer Area -->
+            <div class="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                <button onclick="closeSurveyWorkspace()" class="py-2.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition-all">
+                    Batal
+                </button>
+                <button id="btn-submit-survey" onclick="submitCurrentSurvey()" class="py-2.5 px-5 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2">
+                    Kirim Jawaban <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Leader View Answers -->
+    <div id="modal-leader-answers" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl w-full max-w-3xl shadow-2xl border border-slate-100 overflow-hidden flex flex-col justify-between max-h-[85vh]">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-teal-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-teal-500 text-white rounded-xl flex items-center justify-center text-lg shadow-sm">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-900">Jawaban Survei Peserta</h3>
+                        <p id="leader-ans-subtitle" class="text-xs text-slate-500">Nama Peserta (MPLS-000)</p>
+                    </div>
+                </div>
+                <button onclick="closeLeaderAnswersModal()" class="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Container for Survey answers -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow" id="leader-ans-content"></div>
+
+            <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="closeLeaderAnswersModal()" class="py-2.5 px-5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition-all">
+                    Selesai Meninjau
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Custom Confirmation Modal -->
+    <div id="modal-confirm" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl border border-slate-100 space-y-4 text-center">
+            <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h4 class="text-base font-bold text-slate-900" id="confirm-title">Konfirmasi Hapus</h4>
+            <p class="text-xs text-slate-500 leading-relaxed" id="confirm-message">Apakah Anda yakin?</p>
+            <div class="flex gap-2 justify-center pt-2">
+                <button id="btn-confirm-cancel" class="py-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition-all">Batal</button>
+                <button id="btn-confirm-action" class="py-2 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-amber-100/50 py-4 text-center text-xs text-slate-400 font-medium">
+        <div class="max-w-7xl mx-auto px-4">
+            &copy; 2026 Gugus Cempaka MPLS. Dibuat dengan cinta untuk keakraban bersama.
+        </div>
+    </footer>
+
+    <!-- Firebase JS SDK modules and Custom Application Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, query, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // State variables
+        let app, db, auth;
+        let currentUser = null; 
+        let currentUserId = null; 
+        let currentAdminLoggedIn = false;
+        let onConfirmAction = null; 
+        
+        // Survey templates
+        let surveyQuestions = {
+            refleksi: [
+                "Bagaimana perasaanmu setelah mengikuti rangkaian kegiatan MPLS hari ini?",
+                "Materi apa yang paling menarik dan bermanfaat bagimu?",
+                "Hal baru apa yang kamu pelajari tentang dirimu selama kegiatan ini?"
+            ],
+            evaluasi: [
+                "Bagaimana penilaianmu terhadap keramahan dan keaktifan Kakak-Kakak Gugus Cempaka? (Tuliskan penjelasan singkat)",
+                "Apakah fasilitas penunjang kegiatan di ruangan/gugus sudah memadai dan nyaman?",
+                "Berikan kritik dan saran membangun agar MPLS hari berikutnya bisa berjalan lebih baik!"
+            ]
+        };
+
+        // Realtime caches
+        let allParticipants = [];
+        let allSubmissions = [];
+        let activeSurveyType = ""; 
+
+        // ==========================================================
+        // KONFIGURASI FIREBASE - Project: survei-guguscempaka-mpls2026
+        // Diambil dari Firebase Console > Project Settings > Your apps
+        // ==========================================================
+        const appId = 'mpls-gugus-cempaka';
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAVCWzeTOJ7fw7S3YL5QoAarGZHjYBMPU",
+            authDomain: "survei-guguscempaka-mpls2026.firebaseapp.com",
+            projectId: "survei-guguscempaka-mpls2026",
+            storageBucket: "survei-guguscempaka-mpls2026.firebasestorage.app",
+            messagingSenderId: "237529622727",
+            appId: "1:237529622727:web:24395ba0fd93107e7636e2"
+        };
+        // ==========================================================
+
+        async function initFirebase() {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                await signInAnonymously(auth);
+
+                console.log("Firebase & Authentication initialized successfully!");
+                setupRealtimeListeners();
+            } catch (err) {
+                console.error("Firebase Auth/Init Error: ", err);
+                showToast("Koneksi ke database gagal. Aplikasi berjalan dalam mode Offline.", "warning");
+            }
+        }
+
+        function setupRealtimeListeners() {
+            if (!db) return;
+
+            // 1. Listening to Survey Questions
+            const questionsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'surveys', 'questions');
+            onSnapshot(questionsDocRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    if (data.refleksi && data.refleksi.length > 0) surveyQuestions.refleksi = data.refleksi;
+                    if (data.evaluasi && data.evaluasi.length > 0) surveyQuestions.evaluasi = data.evaluasi;
+                    if (currentAdminLoggedIn) {
+                        renderAdminQuestionSettings();
+                    }
+                } else {
+                    setDoc(questionsDocRef, surveyQuestions).catch(e => console.error("Error setting default questions: ", e));
+                }
+            }, (error) => {
+                console.error("Snapshot error on questions: ", error);
+            });
+
+            // 2. Listening to Participants List
+            const participantsCol = collection(db, 'artifacts', appId, 'public', 'data', 'participants');
+            onSnapshot(participantsCol, (snap) => {
+                allParticipants = [];
+                snap.forEach(doc => {
+                    allParticipants.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (currentAdminLoggedIn) {
+                    updateLeaderDashboardUI();
+                    renderManageParticipantsTable();
+                }
+            }, (error) => {
+                console.error("Snapshot error on participants: ", error);
+            });
+
+            // 3. Listening to Submissions List
+            const submissionsCol = collection(db, 'artifacts', appId, 'public', 'data', 'submissions');
+            onSnapshot(submissionsCol, (snap) => {
+                allSubmissions = [];
+                snap.forEach(doc => {
+                    allSubmissions.push({ id: doc.id, ...doc.data() });
+                });
+                
+                if (currentAdminLoggedIn) {
+                    updateLeaderDashboardUI();
+                }
+                if (currentUserId) {
+                    updateParticipantSurveyProgress();
+                }
+            }, (error) => {
+                console.error("Snapshot error on submissions: ", error);
+            });
+        }
+
+        // Fungsi helper untuk mengirimkan data ke database Netlify Forms secara asinkron (AJAX POST)
+        async function postToNetlifyForm(formName, dataObject) {
+            try {
+                const bodyParams = new URLSearchParams();
+                bodyParams.append("form-name", formName);
+                
+                Object.entries(dataObject).forEach(([key, value]) => {
+                    bodyParams.append(key, value);
+                });
+
+                await fetch("/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: bodyParams.toString()
+                });
+                console.log(`Successfully posted to Netlify Forms: ${formName}`);
+            } catch (error) {
+                console.warn("Netlify Form submission failed, but data will still sync via Firebase: ", error);
+            }
+        }
+
+        window.navigate = function(viewId) {
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.add('hidden');
+            });
+            
+            const destView = document.getElementById(`view-${viewId}`);
+            if (destView) {
+                destView.classList.remove('hidden');
+                destView.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            const badge = document.getElementById('header-user-badge');
+            const logoutBtn = document.getElementById('btn-logout');
+
+            if (currentUserId && (viewId === 'dashboard-participant')) {
+                badge.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+            } else if (currentAdminLoggedIn && (viewId === 'leader-control')) {
+                badge.classList.remove('hidden');
+                document.getElementById('header-username').innerText = "Kakak Gugus";
+                logoutBtn.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        };
+
+        window.showToast = function(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgStyle = "bg-white border-slate-100 text-slate-800 shadow-xl";
+            let icon = '<i class="fa-solid fa-circle-info text-blue-500"></i>';
+            
+            if (type === "success") {
+                bgStyle = "bg-emerald-50 border-emerald-200 text-emerald-900 shadow-emerald-100/50";
+                icon = '<i class="fa-solid fa-circle-check text-emerald-500"></i>';
+            } else if (type === "error") {
+                bgStyle = "bg-rose-50 border-rose-200 text-rose-900 shadow-rose-100/50";
+                icon = '<i class="fa-solid fa-triangle-exclamation text-rose-500"></i>';
+            } else if (type === "warning") {
+                bgStyle = "bg-amber-50 border-amber-200 text-amber-900 shadow-amber-100/50";
+                icon = '<i class="fa-solid fa-circle-exclamation text-amber-500"></i>';
+            }
+
+            toast.className = `flex items-center gap-3 p-4 border rounded-2xl ${bgStyle} transition-all duration-300 transform translate-y-2 opacity-0 text-xs font-semibold shadow-lg`;
+            toast.innerHTML = `
+                <div class="text-base">${icon}</div>
+                <div class="flex-grow">${message}</div>
+                <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 ml-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            `;
+
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-10px]');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const rawId = document.getElementById('participant-id').value.trim();
+            if (!rawId) return;
+
+            const cleanId = rawId.toUpperCase();
+            
+            // Check in local cache / database
+            const matchedUser = allParticipants.find(p => p.id === cleanId);
+            
+            if (matchedUser) {
+                currentUserId = cleanId;
+                currentUser = matchedUser;
+                showToast(`Login berhasil! Selamat datang, ${currentUser.nickname}.`, "success");
+                
+                // Kirim log login ke Netlify Forms secara asinkron
+                postToNetlifyForm('login-history', { participantId: cleanId });
+
+                completeLoginSession();
+            } else {
+                showToast("Nomor peserta tidak terdaftar! Silakan hubungi Kakak Gugus untuk didaftarkan.", "error");
+            }
+        };
+
+        function completeLoginSession() {
+            document.getElementById('header-username').innerText = currentUser.nickname;
+            document.getElementById('dash-nickname').innerText = `Halo, ${currentUser.nickname}! 🌼`;
+            document.getElementById('dash-id').innerText = currentUserId;
+            document.getElementById('dash-gugus-loc').innerText = currentUser.gugusLocation;
+
+            updateParticipantSurveyProgress();
+            navigate('dashboard-participant');
+        }
+
+        function updateParticipantSurveyProgress() {
+            if (!currentUserId) return;
+
+            const mySubmissions = allSubmissions.filter(sub => sub.participantId === currentUserId);
+            const listSurveys = ['refleksi', 'evaluasi', 'kesan_pesan'];
+            let completedCount = 0;
+
+            listSurveys.forEach(surveyType => {
+                const isCompleted = mySubmissions.some(sub => sub.type === surveyType);
+                const statusContainer = document.getElementById(`status-container-${surveyType}`);
+                const card = document.getElementById(`card-${surveyType}`);
+                
+                if (isCompleted) {
+                    completedCount++;
+                    let cleanSurveyName = surveyType === 'refleksi' ? 'Refleksi' : (surveyType === 'evaluasi' ? 'Evaluasi' : 'Kesan Pesan');
+                    
+                    statusContainer.innerHTML = `
+                        <div class="text-center py-2.5 px-4 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold text-xs tracking-wide">
+                            <i class="fa-solid fa-circle-check mr-1"></i> [Survei ${cleanSurveyName} Selesai!]
+                        </div>
+                    `;
+                    card.className = "bg-emerald-50/20 border-2 border-emerald-200 rounded-3xl p-6 shadow-md transition-all duration-300 flex flex-col justify-between";
+                } else {
+                    let btnColor = "bg-slate-950 text-white hover:bg-slate-800 shadow-slate-200";
+                    let actionIcon = '<i class="fa-solid fa-pen-nib text-xs"></i>';
+                    if (surveyType === 'refleksi') {
+                        btnColor = "bg-amber-500 hover:bg-amber-600 shadow-amber-200 text-white";
+                    } else if (surveyType === 'evaluasi') {
+                        btnColor = "bg-teal-600 hover:bg-teal-700 shadow-teal-200 text-white";
+                    } else if (surveyType === 'kesan_pesan') {
+                        btnColor = "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 text-white";
+                    }
+
+                    statusContainer.innerHTML = `
+                        <button onclick="openSurveyWorkspace('${surveyType}')" class="w-full py-2.5 px-4 ${btnColor} rounded-xl font-bold text-xs tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5">
+                            ${actionIcon} Isi Survei
+                        </button>
+                    `;
+                    card.className = "bg-white border border-slate-100 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 flex flex-col justify-between";
+                }
+            });
+
+            document.getElementById('dash-progress-text').innerText = `${completedCount}/3`;
+        }
+
+        window.openSurveyWorkspace = function(surveyType) {
+            activeSurveyType = surveyType;
+            const titleEl = document.getElementById('modal-survey-title');
+            const subtitleEl = document.getElementById('modal-survey-subtitle');
+            const iconContainer = document.getElementById('modal-survey-icon');
+            const contentEl = document.getElementById('modal-survey-content');
+            const btnSubmit = document.getElementById('btn-submit-survey');
+
+            contentEl.innerHTML = "";
+
+            if (surveyType === 'refleksi') {
+                titleEl.innerText = "Survei Refleksi";
+                subtitleEl.innerText = "Mari temukan kembali makna dan evaluasi dirimu hari ini.";
+                iconContainer.className = "w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-lg";
+                iconContainer.innerHTML = '<i class="fa-solid fa-brain"></i>';
+                btnSubmit.className = "py-2.5 px-5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-amber-200 flex items-center gap-2";
+
+                surveyQuestions.refleksi.forEach((q, idx) => {
+                    contentEl.appendChild(createTextAreaField(idx, q));
+                });
+
+            } else if (surveyType === 'evaluasi') {
+                titleEl.innerText = "Survei Evaluasi";
+                subtitleEl.innerText = "Evaluasikan pendamping, materi, dan sarana secara bijak.";
+                iconContainer.className = "w-10 h-10 bg-teal-100 text-teal-600 rounded-xl flex items-center justify-center text-lg";
+                iconContainer.innerHTML = '<i class="fa-solid fa-chart-line"></i>';
+                btnSubmit.className = "py-2.5 px-5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-teal-200 flex items-center gap-2";
+
+                surveyQuestions.evaluasi.forEach((q, idx) => {
+                    contentEl.appendChild(createTextAreaField(idx, q));
+                });
+
+            } else if (surveyType === 'kesan_pesan') {
+                titleEl.innerText = "Kesan & Pesan";
+                subtitleEl.innerText = "Ungkapkan momen indah berkesanmu di Gugus Cempaka.";
+                iconContainer.className = "w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center text-lg";
+                iconContainer.innerHTML = '<i class="fa-solid fa-heart"></i>';
+                btnSubmit.className = "py-2.5 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-indigo-200 flex items-center gap-2";
+
+                contentEl.appendChild(createTextAreaField('kesan', 'Tuliskan kesan terindahmu selama mengikuti MPLS hari ini:'));
+                contentEl.appendChild(createTextAreaField('pesan', 'Pesan hangat untuk Kakak-Kakak Gugus Cempaka agar keakraban terjalin:'));
+            }
+
+            document.getElementById('modal-survey-workspace').classList.remove('hidden');
+        };
+
+        function createTextAreaField(id, questionText) {
+            const container = document.createElement('div');
+            container.className = "space-y-2";
+            container.innerHTML = `
+                <label for="ans-${id}" class="block text-sm font-semibold text-slate-800 leading-relaxed">${questionText}</label>
+                <textarea id="ans-${id}" required rows="3" placeholder="Tuliskan jawaban lengkapmu di sini..." class="survey-field w-full px-4 py-3 border-2 border-slate-100 rounded-2xl focus:border-slate-300 focus:outline-none transition-all text-sm font-medium" data-id="${id}"></textarea>
+            `;
+            return container;
+        }
+
+        window.closeSurveyWorkspace = function() {
+            document.getElementById('modal-survey-workspace').classList.add('hidden');
+        };
+
+        window.submitCurrentSurvey = async function() {
+            if (!currentUserId || !activeSurveyType) return;
+
+            const textareas = document.querySelectorAll('.survey-field');
+            const answers = {};
+            let allAnswered = true;
+
+            textareas.forEach(ta => {
+                const val = ta.value.trim();
+                const qId = ta.getAttribute('data-id');
+                if (!val) {
+                    allAnswered = false;
+                    ta.classList.add('border-rose-300');
+                } else {
+                    ta.classList.remove('border-rose-300');
+                    answers[qId] = val;
+                }
+            });
+
+            if (!allAnswered) {
+                showToast("Lengkapi seluruh pertanyaan sebelum mengirimkan survei!", "warning");
+                return;
+            }
+
+            const payload = {
+                participantId: currentUserId,
+                type: activeSurveyType,
+                answers: answers,
+                submittedAt: new Date().toISOString()
+            };
+
+            try {
+                // 1. Simpan ke Firebase Firestore (Untuk Sinkronisasi Real-Time multi-perangkat)
+                if (db) {
+                    const docId = `${currentUserId}_${activeSurveyType}`;
+                    const submissionDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'submissions', docId);
+                    await setDoc(submissionDocRef, payload);
+                }
+
+                // 2. Kirim ke Database Netlify Forms (Untuk Back-up arsip admin)
+                postToNetlifyForm('survey-submissions', {
+                    participantId: currentUserId,
+                    nickname: currentUser ? currentUser.nickname : "Anonim",
+                    surveyType: activeSurveyType,
+                    surveyAnswersSerialized: JSON.stringify(answers)
+                });
+
+                closeSurveyWorkspace();
+                showToast(`Terima kasih! Survei ${activeSurveyType === 'kesan_pesan' ? 'Kesan & Pesan' : activeSurveyType.toUpperCase()} Anda telah terkirim.`, "success");
+            } catch (err) {
+                console.error("Error submitting survey: ", err);
+                showToast("Pengiriman gagal. Silakan coba kembali.", "error");
+            }
+        };
+
+        window.openAdminGate = function() {
+            if (currentAdminLoggedIn) {
+                navigate('leader-control');
+            } else {
+                document.getElementById('admin-passcode').value = "";
+                navigate('admin-gate');
+            }
+        };
+
+        window.verifyAdminPasscode = function(e) {
+            e.preventDefault();
+            const input = document.getElementById('admin-passcode').value.trim();
+            
+            if (input === 'SURVEICempaka01') {
+                currentAdminLoggedIn = true;
+                showToast("Verifikasi Berhasil! Selamat datang Kakak Gugus.", "success");
+                
+                // Kirim catatan login admin ke Netlify Forms secara terenkripsi/aman
+                postToNetlifyForm('admin-login-history', { adminPasscode: "VERIFIED_PASSCODE" });
+
+                navigate('leader-control');
+                setLeaderTab('participants');
+            } else {
+                showToast("Sandi verifikasi salah! Silakan coba kembali.", "error");
+            }
+        };
+
+        window.logout = function() {
+            currentUserId = null;
+            currentUser = null;
+            currentAdminLoggedIn = false;
+            
+            showToast("Anda telah keluar sesi.", "warning");
+            navigate('home');
+        };
+
+        window.setLeaderTab = function(tabName) {
+            const btnParticipants = document.getElementById('tab-btn-participants');
+            const btnManage = document.getElementById('tab-btn-manage-data');
+            const btnQuestions = document.getElementById('tab-btn-questions');
+
+            const contentParticipants = document.getElementById('tab-content-participants');
+            const contentManage = document.getElementById('tab-content-manage-data');
+            const contentQuestions = document.getElementById('tab-content-questions');
+
+            const activeClass = "px-5 py-3 border-b-2 border-teal-500 text-teal-600 font-bold text-sm transition-all flex items-center gap-2";
+            const inactiveClass = "px-5 py-3 border-b-2 border-transparent text-slate-500 hover:text-slate-800 font-bold text-sm transition-all flex items-center gap-2";
+
+            btnParticipants.className = inactiveClass;
+            btnManage.className = inactiveClass;
+            btnQuestions.className = inactiveClass;
+
+            contentParticipants.classList.add('hidden');
+            contentManage.classList.add('hidden');
+            contentQuestions.classList.add('hidden');
+
+            if (tabName === 'participants') {
+                btnParticipants.className = activeClass;
+                contentParticipants.classList.remove('hidden');
+                updateLeaderDashboardUI();
+            } else if (tabName === 'manage-data') {
+                btnManage.className = activeClass;
+                contentManage.classList.remove('hidden');
+                renderManageParticipantsTable();
+                resetManageForm();
+            } else {
+                btnQuestions.className = activeClass;
+                contentQuestions.classList.remove('hidden');
+                renderAdminQuestionSettings();
+            }
+        };
+
+        function updateLeaderDashboardUI() {
+            if (!currentAdminLoggedIn) return;
+
+            const totalRegistered = allParticipants.length;
+            const refleksiCount = allSubmissions.filter(s => s.type === 'refleksi').length;
+            const evaluasiCount = allSubmissions.filter(s => s.type === 'evaluasi').length;
+            const kesanCount = allSubmissions.filter(s => s.type === 'kesan_pesan').length;
+
+            document.getElementById('stat-total-login').innerText = totalRegistered;
+            document.getElementById('stat-count-refleksi').innerText = refleksiCount;
+            document.getElementById('stat-count-evaluasi').innerText = evaluasiCount;
+            document.getElementById('stat-count-kesan').innerText = kesanCount;
+
+            renderParticipantsTable();
+        }
+
+        function renderParticipantsTable() {
+            const tableBody = document.getElementById('table-participants-body');
+            const searchVal = document.getElementById('leader-search-participant').value.toLowerCase();
+            
+            if (allParticipants.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-10 text-center text-slate-400 font-medium">Belum ada data peserta terdaftar. Pergi ke tab "Atur Data Peserta" untuk menambahkan.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const filtered = allParticipants.filter(p => 
+                p.id.toLowerCase().includes(searchVal) || 
+                p.nickname.toLowerCase().includes(searchVal) || 
+                p.gugusLocation.toLowerCase().includes(searchVal)
+            );
+
+            if (filtered.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-10 text-center text-slate-400 font-medium">Peserta tidak ditemukan.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = "";
+            filtered.forEach(p => {
+                const isRefleksiDone = allSubmissions.some(sub => sub.participantId === p.id && sub.type === 'refleksi');
+                const isEvaluasiDone = allSubmissions.some(sub => sub.participantId === p.id && sub.type === 'evaluasi');
+                const isKesanDone = allSubmissions.some(sub => sub.participantId === p.id && sub.type === 'kesan_pesan');
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/50 transition-all border-b border-slate-100";
+                
+                const badgeRefleksi = isRefleksiDone 
+                    ? '<span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 px-2 py-1 rounded-full text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Selesai</span>' 
+                    : '<span class="inline-flex items-center gap-1 bg-slate-100 text-slate-400 px-2 py-1 rounded-full text-[10px] font-medium"><i class="fa-solid fa-clock"></i> Belum</span>';
+                
+                const badgeEvaluasi = isEvaluasiDone 
+                    ? '<span class="inline-flex items-center gap-1 bg-teal-100 text-teal-800 px-2 py-1 rounded-full text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Selesai</span>' 
+                    : '<span class="inline-flex items-center gap-1 bg-slate-100 text-slate-400 px-2 py-1 rounded-full text-[10px] font-medium"><i class="fa-solid fa-clock"></i> Belum</span>';
+
+                const badgeKesan = isKesanDone 
+                    ? '<span class="inline-flex items-center gap-1 bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-[10px] font-bold"><i class="fa-solid fa-circle-check"></i> Selesai</span>' 
+                    : '<span class="inline-flex items-center gap-1 bg-slate-100 text-slate-400 px-2 py-1 rounded-full text-[10px] font-medium"><i class="fa-solid fa-clock"></i> Belum</span>';
+
+                const hasAnswers = isRefleksiDone || isEvaluasiDone || isKesanDone;
+                const viewBtn = hasAnswers 
+                    ? `<button onclick="viewParticipantAnswers('${p.id}')" class="py-1 px-3 bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 rounded-lg font-bold text-[11px] transition-all"><i class="fa-solid fa-eye"></i> Lihat Jawaban</button>`
+                    : `<span class="text-[11px] font-medium text-slate-400 italic">Belum mengisi</span>`;
+
+                row.innerHTML = `
+                    <td class="py-3 px-4 font-bold text-slate-900">${p.id}</td>
+                    <td class="py-3 px-4 font-semibold text-slate-700">${p.nickname}</td>
+                    <td class="py-3 px-4 text-slate-500">${p.gugusLocation}</td>
+                    <td class="py-3 px-4 text-center">${badgeRefleksi}</td>
+                    <td class="py-3 px-4 text-center">${badgeEvaluasi}</td>
+                    <td class="py-3 px-4 text-center">${badgeKesan}</td>
+                    <td class="py-3 px-4 text-right">${viewBtn}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        window.filterParticipantsTable = function() {
+            renderParticipantsTable();
+        };
+
+        function renderManageParticipantsTable() {
+            const tableBody = document.getElementById('table-manage-body');
+            
+            if (allParticipants.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="py-6 text-center text-slate-400 font-medium">Belum ada akun peserta terdaftar. Gunakan formulir di samping untuk menambahkan.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = "";
+            allParticipants.forEach(p => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/50 border-b border-slate-100";
+                row.innerHTML = `
+                    <td class="py-2.5 px-3 font-bold text-slate-900">${p.id}</td>
+                    <td class="py-2.5 px-3 font-semibold text-slate-700">${p.nickname}</td>
+                    <td class="py-2.5 px-3 text-slate-500">${p.gugusLocation}</td>
+                    <td class="py-2.5 px-3 text-right flex justify-end gap-1.5">
+                        <button onclick="editParticipantAccount('${p.id}', '${p.nickname}', '${p.gugusLocation}')" class="py-1 px-2.5 bg-slate-50 hover:bg-amber-50 text-amber-600 border border-slate-200 hover:border-amber-200 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-user-pen"></i> Edit
+                        </button>
+                        <button onclick="deleteParticipantAccount('${p.id}')" class="py-1 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 rounded-lg font-bold text-[10px] transition-all flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> Hapus
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        window.saveParticipantAccount = async function(e) {
+            e.preventDefault();
+            const idInput = document.getElementById('manage-id');
+            const nickInput = document.getElementById('manage-nickname');
+            const gugusInput = document.getElementById('manage-gugus-loc');
+            const isEditMode = document.getElementById('manage-edit-mode').value === 'true';
+
+            const rawId = idInput.value.trim().toUpperCase();
+            const nickname = nickInput.value.trim();
+            const gugusLocation = gugusInput.value.trim();
+
+            if (!rawId || !nickname || !gugusLocation) return;
+
+            const profilePayload = {
+                nickname: nickname,
+                gugusLocation: gugusLocation,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                // 1. Simpan ke Firebase Firestore (Real-Time Synchronized)
+                if (db) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', rawId);
+                    
+                    if (!isEditMode) {
+                        const existingDoc = await getDoc(docRef);
+                        if (existingDoc.exists()) {
+                            showToast(`Nomor peserta ${rawId} sudah terdaftar dalam sistem!`, "warning");
+                            return;
+                        }
+                    }
+                    await setDoc(docRef, profilePayload);
+                }
+
+                // 2. Log data pendaftaran peserta ke Netlify Forms
+                postToNetlifyForm('participant-management', {
+                    participantId: rawId,
+                    nickname: nickname,
+                    gugusLocation: gugusLocation,
+                    actionType: isEditMode ? "edit_participant" : "create_participant"
+                });
+
+                showToast(`Akun ${rawId} (${nickname}) berhasil disimpan!`, "success");
+                resetManageForm();
+            } catch (err) {
+                console.error("Error saving participant account: ", err);
+                showToast("Gagal menyimpan akun ke basis data.", "error");
+            }
+        };
+
+        window.editParticipantAccount = function(id, nickname, gugusLocation) {
+            document.getElementById('manage-id').value = id;
+            document.getElementById('manage-id').readOnly = true; 
+            document.getElementById('manage-id').classList.add('bg-slate-50', 'text-slate-400');
+            
+            document.getElementById('manage-nickname').value = nickname;
+            document.getElementById('manage-gugus-loc').value = gugusLocation;
+
+            document.getElementById('manage-edit-mode').value = 'true';
+            document.getElementById('manage-action-type').value = "edit_participant";
+            document.getElementById('form-manage-title').innerText = "Edit Akun Peserta";
+            document.getElementById('btn-cancel-manage').classList.remove('hidden');
+        };
+
+        window.deleteParticipantAccount = function(id) {
+            showConfirmModal(
+                "Hapus Akun Peserta",
+                `Apakah Anda yakin ingin menghapus akun peserta ${id}? Tindakan ini juga akan memutuskan sambungan progres pengisiannya.`,
+                async () => {
+                    try {
+                        if (db) {
+                            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'participants', id);
+                            await deleteDoc(docRef);
+                        }
+
+                        // Kirim log penghapusan ke Netlify Forms
+                        postToNetlifyForm('participant-management', {
+                            participantId: id,
+                            nickname: "DELETED",
+                            gugusLocation: "DELETED",
+                            actionType: "delete_participant"
+                        });
+
+                        showToast(`Akun peserta ${id} berhasil dihapus dari database.`, "success");
+                        resetManageForm();
+                    } catch (err) {
+                        console.error("Error deleting participant: ", err);
+                        showToast("Gagal menghapus data dari server.", "error");
+                    }
+                }
+            );
+        };
+
+        window.showConfirmModal = function(title, message, actionFn) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            onConfirmAction = actionFn;
+            document.getElementById('modal-confirm').classList.remove('hidden');
+        };
+
+        document.getElementById('btn-confirm-cancel').onclick = function() {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            onConfirmAction = null;
+        };
+
+        document.getElementById('btn-confirm-action').onclick = async function() {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            if (onConfirmAction) {
+                await onConfirmAction();
+                onConfirmAction = null;
+            }
+        };
+
+        window.resetManageForm = function() {
+            document.getElementById('manage-id').value = "";
+            document.getElementById('manage-id').readOnly = false;
+            document.getElementById('manage-id').classList.remove('bg-slate-50', 'text-slate-400');
+
+            document.getElementById('manage-nickname').value = "";
+            document.getElementById('manage-gugus-loc').value = "";
+
+            document.getElementById('manage-edit-mode').value = 'false';
+            document.getElementById('manage-action-type').value = "create_participant";
+            document.getElementById('form-manage-title').innerText = "Tambah Akun Peserta";
+            document.getElementById('btn-cancel-manage').classList.add('hidden');
+        };
+
+        window.viewParticipantAnswers = function(participantId) {
+            const participant = allParticipants.find(p => p.id === participantId);
+            if (!participant) return;
+
+            document.getElementById('leader-ans-subtitle').innerText = `${participant.nickname} (${participantId}) | Ruang: ${participant.gugusLocation}`;
+            
+            const container = document.getElementById('leader-ans-content');
+            container.innerHTML = "";
+
+            // Refleksi Block
+            const refleksiSub = allSubmissions.find(s => s.participantId === participantId && s.type === 'refleksi');
+            container.appendChild(createAdminAnswerBlock('Refleksi', 'amber', surveyQuestions.refleksi, refleksiSub));
+
+            // Evaluasi Block
+            const evaluasiSub = allSubmissions.find(s => s.participantId === participantId && s.type === 'evaluasi');
+            container.appendChild(createAdminAnswerBlock('Evaluasi', 'teal', surveyQuestions.evaluasi, evaluasiSub));
+
+            // Kesan Pesan Block
+            const kesanSub = allSubmissions.find(s => s.participantId === participantId && s.type === 'kesan_pesan');
+            const structuredKesanQuestions = {
+                'kesan': 'Tuliskan kesan terindahmu selama mengikuti MPLS hari ini:',
+                'pesan': 'Pesan hangat untuk Kakak-Kakak Gugus Cempaka agar keakraban terjalin:'
+            };
+            container.appendChild(createAdminAnswerBlock('Kesan & Pesan', 'indigo', structuredKesanQuestions, kesanSub, true));
+
+            document.getElementById('modal-leader-answers').classList.remove('hidden');
+        };
+
+        function createAdminAnswerBlock(title, color, questionsList, submission, isMapOfLabels = false) {
+            const block = document.createElement('div');
+            block.className = `border border-${color}-100 bg-${color}-50/10 p-5 rounded-2xl space-y-4`;
+            
+            let status = `<span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-slate-100 text-slate-400"><i class="fa-solid fa-clock"></i> Belum Diisi</span>`;
+            if (submission) {
+                status = `<span class="px-2.5 py-1 text-[10px] font-bold uppercase rounded-full bg-emerald-100 text-emerald-800"><i class="fa-solid fa-circle-check"></i> Selesai</span>`;
+            }
+
+            block.innerHTML = `
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-sm font-extrabold text-slate-900 flex items-center gap-1.5 uppercase tracking-wide">
+                        <span class="w-2 h-2 rounded-full bg-${color}-500"></span> ${title}
+                    </h4>
+                    ${status}
+                </div>
+            `;
+
+            const ansContainer = document.createElement('div');
+            ansContainer.className = "space-y-3 pt-1 text-xs";
+
+            if (!submission) {
+                ansContainer.innerHTML = `<p class="text-slate-400 italic">Peserta belum melengkapi segmen survei ini.</p>`;
+            } else {
+                if (isMapOfLabels) {
+                    Object.entries(questionsList).forEach(([key, qText]) => {
+                        const answerText = submission.answers[key] || "Tidak ada jawaban.";
+                        ansContainer.innerHTML += `
+                            <div class="space-y-1">
+                                <span class="block font-bold text-slate-700">${qText}</span>
+                                <p class="text-slate-600 bg-white p-3 rounded-xl border border-slate-100 leading-relaxed">${answerText}</p>
+                            </div>
+                        `;
+                    });
+                } else {
+                    questionsList.forEach((qText, idx) => {
+                        const answerText = submission.answers[idx] || "Tidak ada jawaban.";
+                        ansContainer.innerHTML += `
+                            <div class="space-y-1">
+                                <span class="block font-bold text-slate-700">${idx + 1}. ${qText}</span>
+                                <p class="text-slate-600 bg-white p-3 rounded-xl border border-slate-100 leading-relaxed">${answerText}</p>
+                            </div>
+                        `;
+                    });
+                }
+            }
+
+            block.appendChild(ansContainer);
+            return block;
+        }
+
+        window.closeLeaderAnswersModal = function() {
+            document.getElementById('modal-leader-answers').classList.add('hidden');
+        };
+
+        function renderAdminQuestionSettings() {
+            const containerRefleksi = document.getElementById('questions-list-refleksi');
+            const containerEvaluasi = document.getElementById('questions-list-evaluasi');
+
+            containerRefleksi.innerHTML = "";
+            surveyQuestions.refleksi.forEach((q, idx) => {
+                containerRefleksi.appendChild(createQuestionEditorRow('refleksi', idx, q));
+            });
+
+            containerEvaluasi.innerHTML = "";
+            surveyQuestions.evaluasi.forEach((q, idx) => {
+                containerEvaluasi.appendChild(createQuestionEditorRow('evaluasi', idx, q));
+            });
+        }
+
+        function createQuestionEditorRow(type, idx, textValue) {
+            const row = document.createElement('div');
+            row.className = "flex items-center gap-2";
+            row.innerHTML = `
+                <span class="w-6 h-6 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500">${idx + 1}</span>
+                <input type="text" value="${textValue}" class="question-input-${type} flex-grow px-4 py-2 border border-slate-200 rounded-xl focus:border-slate-400 focus:outline-none text-xs font-semibold" placeholder="Masukkan pertanyaan baru...">
+                <button onclick="removeQuestionInput('${type}', ${idx})" class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 flex items-center justify-center transition-all flex-shrink-0" title="Hapus Pertanyaan">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+            `;
+            return row;
+        }
+
+        window.addNewQuestionInput = function(type) {
+            if (type === 'refleksi') {
+                surveyQuestions.refleksi.push("");
+            } else {
+                surveyQuestions.evaluasi.push("");
+            }
+            renderAdminQuestionSettings();
+        };
+
+        window.removeQuestionInput = function(type, idx) {
+            if (type === 'refleksi') {
+                surveyQuestions.refleksi.splice(idx, 1);
+            } else {
+                surveyQuestions.evaluasi.splice(idx, 1);
+            }
+            renderAdminQuestionSettings();
+        };
+
+        window.saveSurveyQuestions = async function() {
+            const inputsRefleksi = document.querySelectorAll('.question-input-refleksi');
+            const newRefleksi = [];
+            inputsRefleksi.forEach(inp => {
+                const val = inp.value.trim();
+                if (val) newRefleksi.push(val);
+            });
+
+            const inputsEvaluasi = document.querySelectorAll('.question-input-evaluasi');
+            const newEvaluasi = [];
+            inputsEvaluasi.forEach(inp => {
+                const val = inp.value.trim();
+                if (val) newEvaluasi.push(val);
+            });
+
+            if (newRefleksi.length === 0 || newEvaluasi.length === 0) {
+                showToast("Pertanyaan Refleksi & Evaluasi minimal harus berisi 1 butir!", "error");
+                return;
+            }
+
+            try {
+                if (db) {
+                    const questionsDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'surveys', 'questions');
+                    await setDoc(questionsDocRef, {
+                        refleksi: newRefleksi,
+                        evaluasi: newEvaluasi
+                    });
+                    showToast("Seluruh isi pertanyaan survei berhasil disimpan ke server!", "success");
+                } else {
+                    surveyQuestions.refleksi = newRefleksi;
+                    surveyQuestions.evaluasi = newEvaluasi;
+                    showToast("Berhasil menyimpan secara lokal (Offline mode).", "warning");
+                }
+            } catch (err) {
+                console.error("Error saving questions: ", err);
+                showToast("Gagal menyimpan pertanyaan. Coba kembali.", "error");
+            }
+        };
+
+        window.onload = function() {
+            navigate('home');
+            initFirebase();
+        };
+
+    </script>
+</body>
+</html>
